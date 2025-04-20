@@ -7,7 +7,7 @@ import { Question } from "src/resources/questions/questions.model";
 import { FindWithPaginationQueryDto } from "src/resources/users/dto/find-with-pagination-query.dto";
 import { CourseStatuses } from "src/shared/constants/course-statuses";
 import { Course } from "./courses.model";
-import { CreateStructureCourseDto } from "./dto/create-structure-course.dto";
+import { CreateStructureCourseDto, ModulesDto } from "./dto/create-structure-course.dto";
 
 @Injectable()
 export class CoursesService {
@@ -19,7 +19,6 @@ export class CoursesService {
 
   async createCourse(dto: CreateStructureCourseDto, userId: number) {
     try {
-      // Создаем курс
       const course = await this.courseRepository.create({
         title: dto.title,
         description: dto.description,
@@ -30,7 +29,6 @@ export class CoursesService {
         status: CourseStatuses.CREATED,
       });
 
-      // Обработка модулей курса
       for (const moduleDto of dto.modules) {
         const courseModule = await this.moduleRepository.create({
           title: moduleDto.title,
@@ -38,7 +36,6 @@ export class CoursesService {
           courseId: course.id,
         });
 
-        // Обработка уроков
         if (moduleDto.lessons?.length) {
           for (const lessonDto of moduleDto.lessons) {
             await this.lessonRepository.create({
@@ -87,14 +84,91 @@ export class CoursesService {
 
   async getCourseById(id: number) {
     try {
-      // Получение курса по ID
       return await this.courseRepository.findByPk(id, {
         include: [
-          { model: Lesson, include: [Question] }, // включаем уроки и вопросы
+          {
+            model: CourseModule,
+            include: [
+              {
+                model: Lesson,
+                include: [Question],
+              },
+            ],
+          },
         ],
       });
     } catch (error) {
       throw new Error(`Ошибка при получении курса с ID ${id}: ${error.message}`);
+    }
+  }
+
+  async updateModule(id: number, dto: Partial<ModulesDto>) {
+    try {
+      const module = await this.moduleRepository.findByPk(id);
+      if (!module) {
+        throw new Error("Модуль не найден");
+      }
+
+      await module.update({
+        title: dto.title,
+        description: dto.description,
+        lessons: dto.lessons,
+      });
+
+      return module;
+    } catch (error) {
+      throw new Error(`Ошибка при обновлении модуля: ${error.message}`);
+    }
+  }
+
+  async updateLesson(moduleId: number, lessonId: number, dto: Partial<Lesson>) {
+    try {
+      const lesson = await this.lessonRepository.findOne({
+        where: {
+          id: lessonId,
+          moduleId: moduleId,
+        },
+      });
+
+      if (!lesson) {
+        throw new Error("Урок не найден в указанном модуле");
+      }
+
+      await lesson.update(dto);
+
+      if (dto.questions) {
+        await Question.destroy({ where: { lessonId } });
+        for (const questionDto of dto.questions) {
+          await Question.create({
+            ...questionDto,
+            lessonId,
+          });
+        }
+      }
+
+      return lesson;
+    } catch (error) {
+      throw new Error(`Ошибка при обновлении урока: ${error.message}`);
+    }
+  }
+
+  async updateCourseStatus(id: number, status: keyof typeof CourseStatuses): Promise<Course> {
+    try {
+      const course = await this.courseRepository.findOne({
+        where: { id },
+        rejectOnEmpty: true,
+      });
+
+      if (!CourseStatuses[status]) {
+        throw new Error(`Недопустимый статус: ${status}`);
+      }
+
+      return await course.update({ status });
+    } catch (error) {
+      if (error.name === "SequelizeEmptyResultError") {
+        throw new Error("Курс не найден");
+      }
+      throw new Error(`Ошибка при обновлении статуса: ${error.message}`);
     }
   }
 }

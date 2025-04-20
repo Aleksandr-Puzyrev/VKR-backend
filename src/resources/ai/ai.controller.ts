@@ -1,9 +1,9 @@
-import { CreateModuleCourseDto } from 'src/resources/ai/dto/create-module-course.dto';
-import { Controller, Post, Body } from "@nestjs/common";
+import { Body, Controller, Post } from "@nestjs/common";
 import { ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { AiTask } from "./ai-task.model";
-import { AiService } from "./ai.service";
 import { CreateStructureCourseDto } from "../courses/dto/create-structure-course.dto";
+import { Lesson } from "../lessons/lessons.model";
+import { AiService } from "./ai.service";
+import { CreateModuleCourseDto } from "./dto/create-module-course.dto";
 
 @Controller("ai")
 export class AiController {
@@ -11,15 +11,15 @@ export class AiController {
 
   @ApiOperation({ summary: "Генерация структуры курса по теме" })
   @ApiResponse({ status: 200, type: CreateStructureCourseDto })
-  @Post('generate-structure')
-  generateStructure(@Body() body: { query: string }) {
-    return this.aiService.generateStructureCourse(body.query);
+  @Post("generate-structure")
+  generateStructure(@Body() body: { topic: string }) {
+    return this.aiService.generateStructureCourse(body.topic);
   }
 
   @ApiOperation({ summary: "Генерация урока" })
-  @ApiResponse({ status: 200, type: CreateModuleCourseDto })
-  @Post('generate-lesson')
-  generateModule(@Body() body: { query: CreateModuleCourseDto }) {
-    return this.aiService.generateLesson(body.query);
+  @ApiResponse({ status: 200, type: Lesson })
+  @Post("generate-lesson")
+  generateLesson(@Body() body: { query: CreateModuleCourseDto; moduleId: number, lessonId: number }) {
+    return this.aiService.generateLesson(body.query, body.moduleId, body.lessonId);
   }
 }

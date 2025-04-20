@@ -4,17 +4,17 @@ import { Lesson } from '../lessons/lessons.model';
 @Table({ tableName: 'questions' })
 export class Question extends Model<Question> {
   @Column({ type: DataType.TEXT })
-  questionText: string;  // текст вопроса
+  questionText: string;
 
   @Column({ type: DataType.JSONB })
-  options: string[]; // варианты ответов (массив строк)
+  options: string[];
 
   @Column({ type: DataType.STRING })
-  answer: string; // правильный ответ
+  answer: string;
 
   @ForeignKey(() => Lesson)
   @Column
-  lessonId: number; // привязка к уроку
+  lessonId: number;
 
   @BelongsTo(() => Lesson)
   lesson: Lesson;
