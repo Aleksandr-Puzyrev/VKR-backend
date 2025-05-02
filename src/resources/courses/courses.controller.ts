@@ -1,16 +1,18 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { FindWithPaginationQueryDto } from "src/resources/users/dto/find-with-pagination-query.dto";
 import { GetUser } from "src/shared/decorators/get-user.decorator";
 import { Roles } from "../auth/roles-auth.decorator";
 import { RolesGuard } from "../auth/roles.guard";
+import { UpdateLessonDto } from "../lessons/dto/update-lesson.dto";
+import { Lesson } from "../lessons/lessons.model";
 import { Course } from "./courses.model";
 import { CoursesService } from "./courses.service";
 import { CreateStructureCourseDto, ModulesDto } from "./dto/create-structure-course.dto";
-import { Lesson } from "../lessons/lessons.model";
-import { UpdateLessonDto } from "../lessons/dto/update-lesson.dto";
-import { CourseStatuses } from "src/shared/constants/course-statuses";
 import { UpdateCourseStatusDto } from "./dto/update-course-status.dto";
+import { UploadImageDto } from "./dto/upload-image.dto";
+import { AvatarUploadValidationPipe } from "src/shared/pipes/avatar-upload.validation";
 
 @Controller("courses")
 export class CoursesController {
@@ -62,5 +64,28 @@ export class CoursesController {
   @Put(":id/status")
   async updateCourseStatus(@Param("id") id: number, @Body() dto: UpdateCourseStatusDto) {
     return this.coursesService.updateCourseStatus(+id, dto.status);
+  }
+
+  @ApiOperation({ summary: "Загрузка изображения курса" })
+  @ApiResponse({ status: 200, type: Course })
+  @Roles("ADMIN")
+  @UseGuards(RolesGuard)
+  @Post(':id/image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCourseImage(
+    @Param('id') id: number,
+    @Body() _: UploadImageDto,
+    @UploadedFile(AvatarUploadValidationPipe) file: Express.Multer.File
+  ) {
+    return this.coursesService.uploadCourseImage(Number(id), file);
+  }
+
+  @ApiOperation({ summary: "Удаление изображения курса" })
+  @ApiResponse({ status: 200, type: Course })
+  @Roles("ADMIN")
+  @UseGuards(RolesGuard)
+  @Delete(':id/image')
+  async deleteCourseImage(@Param('id') id: number) {
+    return this.coursesService.deleteCourseImage(+id);
   }
 }

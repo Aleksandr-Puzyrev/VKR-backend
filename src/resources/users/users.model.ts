@@ -3,6 +3,7 @@ import { BelongsToMany, Column, DataType, HasMany, Model, Table } from "sequeliz
 import { Course } from "src/resources/courses/courses.model";
 import { Role } from "src/resources/roles/roles.model";
 import { UserRoles } from "src/resources/roles/user-roles.model";
+import { UserCourses } from "./user-courses.model";
 
 interface UserCreationAttr {
   email: string;
@@ -34,6 +35,6 @@ export class User extends Model<User, UserCreationAttr> {
   @BelongsToMany(() => Role, () => UserRoles)
   roles: Role[];
 
-  @HasMany(() => Course)
+  @BelongsToMany(() => Course, () => UserCourses)
   courses: Course[];
 }

@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
   BelongsTo,
+  BelongsToMany,
   Column,
   DataType,
   ForeignKey,
@@ -11,6 +12,7 @@ import {
 import { CourseModule } from "src/modules/modules.model";
 import { User } from "src/resources/users/users.model";
 import { CourseStatuses } from "src/shared/constants/course-statuses";
+import { UserCourses } from "../users/user-courses.model";
 
 @Table({ tableName: "courses" })
 export class Course extends Model<Course> {
@@ -42,6 +44,10 @@ export class Course extends Model<Course> {
   @Column({ type: DataType.TEXT })
   status: keyof typeof CourseStatuses;
 
+  @ApiProperty({ example: "image.jpg", description: "Название файла изображения" })
+  @Column({ type: DataType.STRING, allowNull: true })
+  image: string;
+
   @ForeignKey(() => User)
   @Column({ type: DataType.INTEGER, allowNull: false })
   userId: number;
@@ -51,4 +57,7 @@ export class Course extends Model<Course> {
 
   @HasMany(() => CourseModule)
   modules: CourseModule[];
+
+  @BelongsToMany(() => User, () => UserCourses)
+  users: User[];
 }

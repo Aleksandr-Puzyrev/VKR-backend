@@ -20,6 +20,7 @@ import { AiTask } from "./resources/ai/ai-task.model";
 import { AiModule } from "./resources/ai/ai.module";
 import { ModulesModule } from './modules/modules.module';
 import { CourseModule } from "./modules/modules.model";
+import { UserCourses } from "./resources/users/user-courses.model";
 
 @Module({
   controllers: [],
@@ -38,7 +39,7 @@ import { CourseModule } from "./modules/modules.model";
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      models: [User, Role, UserRoles, Course, Lesson, Question, AiTask, CourseModule],
+      models: [User, Role, UserRoles, Course, Lesson, Question, AiTask, CourseModule, UserCourses],
       autoLoadModels: true,
     }),
     UsersModule,

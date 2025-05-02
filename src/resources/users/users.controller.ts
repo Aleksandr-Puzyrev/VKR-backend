@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
-import { ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { Roles } from "src/resources/auth/roles-auth.decorator";
 import { RolesGuard } from "src/resources/auth/roles.guard";
 import { AddRoleDto } from "./dto/add-role.dto";
@@ -8,6 +8,9 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { FindWithPaginationQueryDto } from "./dto/find-with-pagination-query.dto";
 import { User } from "./users.model";
 import { UsersService } from "./users.service";
+import { AssignCourseDto } from "./dto/assign-course.dto";
+import { Course } from "../courses/courses.model";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
 @Controller("users")
 export class UsersController {
@@ -45,5 +48,28 @@ export class UsersController {
   @Post("/ban")
   ban(@Body() dto: BanUserDto) {
     return this.userService.ban(dto);
+  }
+
+  @ApiOperation({ summary: "Назначить курс пользователю" })
+  @ApiResponse({ status: 200, type: AssignCourseDto })
+  @Post("/assign-course")
+  assignCourse(@Body() dto: AssignCourseDto) {
+    return this.userService.assignCourse(dto);
+  }
+
+  @ApiOperation({ summary: "Получить курсы пользователя" })
+  @ApiResponse({ status: 200, type: [Course] })
+  @Get("/:userId/courses")
+  getUserCourses(@Param("userId") userId: number) {
+    return this.userService.getUserCourses(userId);
+  }
+
+  @ApiOperation({ summary: "Получить данные текущего пользователя" })
+  @ApiResponse({ status: 200, type: User })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get("/profile")
+  getMyProfile(@Req() req: { user: { id: number } }) {
+    return this.userService.getMyProfile(req.user.id);
   }
 }

@@ -1,11 +1,13 @@
 import { HttpService } from "@nestjs/axios";
 import { Injectable } from "@nestjs/common";
 import { firstValueFrom } from "rxjs";
-import { CoursesService } from "src/resources/courses/courses.service";
+import { assistantPrompt } from "src/shared/promts/assistant-prompt";
 import { modulePrompt } from "src/shared/promts/module-prompt";
 import { structurePrompt } from "src/shared/promts/structure-prompt";
 import { v4 as uuidv4 } from "uuid";
 import { CreateStructureCourseDto } from "../courses/dto/create-structure-course.dto";
+import { LessonsService } from "../lessons/lessons.service";
+import { AssistantRequestDto } from "./dto/assistant.dto";
 import { CreateModuleCourseDto } from "./dto/create-module-course.dto";
 
 @Injectable()
@@ -14,7 +16,7 @@ export class AiService {
   private readonly API_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions";
 
   constructor(
-    private readonly coursesService: CoursesService,
+    private readonly lessonsService: LessonsService,
     private readonly httpService: HttpService
   ) {
     if (process.env.NODE_ENV === "development") {
@@ -39,7 +41,11 @@ export class AiService {
     return response.data.access_token;
   }
 
-  private async callGigaChat(prompt: string, systemMessage: string): Promise<string> {
+  private async callGigaChat(
+    prompt: string,
+    systemMessage: string,
+    jsonMode: boolean = true
+  ): Promise<string> {
     const accessToken = await this.getAccessToken();
 
     const body = {
@@ -51,7 +57,7 @@ export class AiService {
           content: prompt + " Заверши JSON полностью, включая все закрывающие скобки.",
         },
       ],
-      temperature: 0.2,
+      temperature: jsonMode ? 0.2 : 0.7,
       max_tokens: 4000,
       repetition_penalty: 1.2,
       stream: false,
@@ -85,13 +91,15 @@ export class AiService {
   async generateLesson(
     query: CreateModuleCourseDto,
     moduleId: number,
-    lessonId: number,
+    lessonId: number
   ): Promise<CreateModuleCourseDto> {
     const systemMessage = `Ты — генератор учебного контента. Отвечай строго в JSON формате.`;
 
     try {
-      const content = await this.callGigaChat(modulePrompt(query, moduleId, lessonId), systemMessage);
-      console.log("content: ", content)
+      const content = await this.callGigaChat(
+        modulePrompt(query, moduleId, lessonId),
+        systemMessage
+      );
       const json = this.extractJson(content);
       return JSON.parse(json);
     } catch (error) {
@@ -106,5 +114,21 @@ export class AiService {
       throw new Error("Ответ GigaChat не содержит корректного JSON");
     }
     return text.slice(jsonStart, jsonEnd);
+  }
+
+  async handleAssistantQuery(lessonId: string, message: string): Promise<AssistantRequestDto> {
+    try {
+      const lesson = await this.lessonsService.findOne(+lessonId);
+      if (!lesson) {
+        throw new Error(`Урок с ID ${lessonId} не найден`);
+      }
+
+      const systemMessage = assistantPrompt(lesson);
+      const response = await this.callGigaChat(message, systemMessage, false);
+      const jsonParse = JSON.parse(this.extractJson(response));
+      return { message: jsonParse.answer, lessonId };
+    } catch (error) {
+      throw new Error(`Ошибка ИИ-ассистента: ${error.message}`);
+    }
   }
 }

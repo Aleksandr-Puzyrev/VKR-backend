@@ -8,11 +8,25 @@ import { Course } from "./courses.model";
 import { CoursesService } from "./courses.service";
 import { AuthModule } from "../auth/auth.module";
 import { Question } from "../questions/questions.model";
+import { MulterModule } from "@nestjs/platform-express";
+import { FilesService } from "src/files/files.service";
+import { FilesModule } from "src/files/files.module";
+import { ConfigModule } from "@nestjs/config";
+import { UserCourses } from "../users/user-courses.model";
 
 @Module({
-  imports: [forwardRef(() => UsersModule), SequelizeModule.forFeature([Course, CourseModule, Lesson, Question]), AuthModule],
+  imports: [
+    forwardRef(() => UsersModule),
+    SequelizeModule.forFeature([Course, CourseModule, Lesson, Question, UserCourses]),
+    AuthModule,
+    MulterModule.register({
+      dest: "../../../static/courses",
+    }),
+    FilesModule,
+    ConfigModule,
+  ],
   controllers: [CoursesController],
-  providers: [CoursesService],
+  providers: [CoursesService, FilesService],
   exports: [CoursesService],
 })
 export class CoursesModule {}
