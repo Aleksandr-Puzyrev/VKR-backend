@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
 import { Op } from "sequelize";
 import { CourseModule } from "src/modules/modules.model";
@@ -9,6 +9,8 @@ import { CourseStatuses } from "src/shared/constants/course-statuses";
 import { Course } from "./courses.model";
 import { CreateStructureCourseDto, ModulesDto } from "./dto/create-structure-course.dto";
 import { FilesService } from "src/files/files.service";
+import { FirebaseStorageService } from "src/files/firebase-storage.service";
+import { YandexStorageService } from "src/files/yandex-storage.service";
 
 @Injectable()
 export class CoursesService {
@@ -17,6 +19,8 @@ export class CoursesService {
     @InjectModel(CourseModule) private moduleRepository: typeof CourseModule,
     @InjectModel(Lesson) private lessonRepository: typeof Lesson,
     private readonly filesService: FilesService,
+    private readonly firebaseStorageService: FirebaseStorageService,
+    private readonly yandexStorageService: YandexStorageService,
   ) {}
 
   async createCourse(dto: CreateStructureCourseDto, userId: number) {
@@ -174,31 +178,6 @@ export class CoursesService {
       throw new Error(`Ошибка при обновлении статуса: ${error.message}`);
     }
   }
-
-  async uploadCourseImage(
-    id: number,
-    file: Express.Multer.File
-  ): Promise<Course> {
-    if (isNaN(id) || id <= 0) {
-      throw new BadRequestException('Неверный ID курса');
-    }
-
-    const course = await this.courseRepository.findByPk(id);
-    if (!course) {
-      throw new Error('Курс не найден');
-    }
-
-    // Удаляем старое изображение если есть
-    if (course.image) {
-      await this.filesService.deleteFile(course.image);
-    }
-
-    // Сохраняем новое изображение
-    const imagePath = await this.filesService.createCourseImage(file);
-    
-    // Обновляем запись курса
-    return course.update({ image: imagePath });
-  }
   
   async deleteCourseImage(courseId: number): Promise<Course> {
     const course = await this.courseRepository.findByPk(courseId);
@@ -212,5 +191,22 @@ export class CoursesService {
     }
 
     return course;
+  }
+
+  async uploadCourseImage(
+    id: number,
+    file: Express.Multer.File // Ожидаем обработанный Multer файл
+  ): Promise<Course> {
+    if (!file) {
+      throw new BadRequestException('Файл не был загружен');
+    }
+
+    const course = await this.courseRepository.findByPk(id);
+    if (!course) {
+      throw new BadRequestException('Курс не найден');
+    }
+
+    const imagePath = await this.yandexStorageService.uploadCourseImage(id, file);
+    return await course.update({ image: imagePath });
   }
 }

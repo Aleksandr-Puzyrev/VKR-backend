@@ -66,18 +66,13 @@ export class CoursesController {
     return this.coursesService.updateCourseStatus(+id, dto.status);
   }
 
-  @ApiOperation({ summary: "Загрузка изображения курса" })
-  @ApiResponse({ status: 200, type: Course })
-  @Roles("ADMIN")
-  @UseGuards(RolesGuard)
   @Post(':id/image')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadCourseImage(
+  @UseInterceptors(FileInterceptor('image')) // Должно совпадать с именем поля в FormData
+  async uploadImage(
     @Param('id') id: number,
-    @Body() _: UploadImageDto,
-    @UploadedFile(AvatarUploadValidationPipe) file: Express.Multer.File
+    @UploadedFile() file: Express.Multer.File // Multer обработает файл
   ) {
-    return this.coursesService.uploadCourseImage(Number(id), file);
+    return this.coursesService.uploadCourseImage(id, file);
   }
 
   @ApiOperation({ summary: "Удаление изображения курса" })

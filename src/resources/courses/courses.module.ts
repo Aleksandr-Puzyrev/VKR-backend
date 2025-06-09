@@ -13,6 +13,8 @@ import { FilesService } from "src/files/files.service";
 import { FilesModule } from "src/files/files.module";
 import { ConfigModule } from "@nestjs/config";
 import { UserCourses } from "../users/user-courses.model";
+import { FirebaseStorageService } from "src/files/firebase-storage.service";
+import { YandexStorageService } from "src/files/yandex-storage.service";
 
 @Module({
   imports: [
@@ -26,7 +28,7 @@ import { UserCourses } from "../users/user-courses.model";
     ConfigModule,
   ],
   controllers: [CoursesController],
-  providers: [CoursesService, FilesService],
+  providers: [CoursesService, FilesService, FirebaseStorageService, YandexStorageService],
   exports: [CoursesService],
 })
 export class CoursesModule {}
