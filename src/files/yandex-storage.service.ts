@@ -84,6 +84,4 @@ export class YandexStorageService {
       throw new Error(`Не удалось загрузить изображение: ${error.message}`);
     }
   }
-
-  // ... остальные методы остаются без изменений
 }
